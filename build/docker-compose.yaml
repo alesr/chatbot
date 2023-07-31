@@ -1,0 +1,17 @@
+version: '3.8'
+
+networks:
+  backend:
+
+services:  
+  db:
+    image: ankane/pgvector
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: testdb
+    volumes:
+      - ./migrations:/migrations
+    ports:
+      - "5432:5432"
