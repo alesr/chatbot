@@ -1,0 +1,33 @@
+version: '3'
+
+vars:
+  TESTFLAGS: "-v -race -vet=all -count=1 -timeout 60s -cover"
+
+tasks:
+  db:
+    desc: "Runs the database"
+    cmds:
+      - docker-compose -f build/docker-compose.yaml up db -d
+
+  db-down:
+    desc: "Stops the database"
+    cmds:
+      - docker-compose -f build/docker-compose.yaml down
+
+  db-migrate:
+    desc: "Runs the database migrations"
+    aliases: [migrate]
+    cmds:
+      - docker run --rm -v $(pwd)/migrations:/migrations --network host migrate/migrate -path=/migrations/ -database postgres://user:password@localhost:5432/testdb?sslmode=disable up
+
+  db-shell: 
+    desc: "Runs the database shell. Requires the database to be running and postgresql to be installed locally."
+    cmds:
+      - psql postgres://user:password@localhost:5432/testdb?sslmode=disable
+
+  test-unit:
+    desc: "Runs the unit tests"
+    aliases: [unit, test]
+    cmds:
+      - go test {{.TESTFLAGS}} ./...
+
