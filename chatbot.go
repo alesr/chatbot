@@ -19,36 +19,49 @@ const (
 	defaultChunkSize int         = 500
 )
 
-type OpenAIModel string
+type (
+	// OpenAIModel represents the model used by OpenAI.
+	OpenAIModel string
 
-type Client interface {
-	CreateEmbedding(ctx context.Context, in openaicli.EmbbedingRequest) (*openaicli.EmbeddingResponse, error)
-	CreateChatCompletition(ctx context.Context, in openaicli.CompletitionRequest) (*openaicli.CompletitionResponse, error)
-}
+	// Client represents the OpenAI client for creating completitions and embeddings.
+	Client interface {
+		CreateEmbedding(ctx context.Context, in openaicli.EmbbedingRequest) (*openaicli.EmbeddingResponse, error)
+		CreateChatCompletition(ctx context.Context, in openaicli.CompletitionRequest) (*openaicli.CompletitionResponse, error)
+	}
 
-type Repository interface {
-	StoreEmbeddings(ctx context.Context, in storage.StoreEmbeddingInput) error
-	FetchNearestNeighbor(ctx context.Context, in storage.FetchNearestNeighborInput) (text string, distance float64, errr error)
-}
+	// Repository represents the storage repository for storing
+	// embeddings and fetching nearest neighbors.
+	Repository interface {
+		StoreEmbeddings(ctx context.Context, in storage.StoreEmbeddingInput) error
+		FetchNearestNeighbor(ctx context.Context, in storage.FetchNearestNeighborInput) (text string, distance float64, errr error)
+	}
 
-type Service struct {
-	apiKey string
-	client Client
-	repo   Repository
-}
+	// TrainInput represents the input for training.
+	TrainInput struct {
+		UserID string
+		Model  OpenAIModel
+		Data   []io.Reader
+	}
 
-type EmbeddingCollection struct {
-	ID      string      `json:"id"`
-	Model   OpenAIModel `json:"model"`
-	Embedds []Embedding `json:"embeddings"`
-}
+	// AskInput represents the input for asking questions.
+	AskInput struct {
+		UserID       string
+		CollectionID string
+		Question     string
+	}
 
-type Embedding struct {
-	ID     string    `json:"id"`
-	Text   string    `json:"input"`
-	Vector []float32 `json:"embedding"`
-}
+	// Service represents the chatbot service.
+	// It provides methods for training by creating embeddings,
+	// and asking questions by fetching nearest neighbors and
+	// creating completitions.
+	Service struct {
+		apiKey string
+		client Client
+		repo   Repository
+	}
+)
 
+// NewService returns a new chatbot service.
 func NewService(apiKey string, client Client, repo Repository) *Service {
 	return &Service{
 		apiKey: apiKey,
@@ -57,13 +70,9 @@ func NewService(apiKey string, client Client, repo Repository) *Service {
 	}
 }
 
-type TrainInput struct {
-	UserID       string
-	CollectionID string
-	Model        OpenAIModel
-	Data         []io.Reader
-}
-
+// Train trains the chatbot by creating embeddings for the given data.
+// It stores both the input data as well as the embeddings in the repository,
+// and returns the collection ID.
 func (s *Service) Train(ctx context.Context, in TrainInput) (string, error) {
 	var collectionID string = "coll-" + uuid.NewString()
 	readDataCh := make(chan []string)
@@ -123,6 +132,8 @@ func (s *Service) Train(ctx context.Context, in TrainInput) (string, error) {
 
 	return collectionID, nil
 }
+
+// processChunk creates embeddings for the given chunk of data,
 func (s *Service) processChunk(ctx context.Context, userID, collectionID, chunk, model string) error {
 	embedd, err := s.client.CreateEmbedding(ctx, openaicli.EmbbedingRequest{
 		Model: model,
@@ -148,12 +159,7 @@ func (s *Service) processChunk(ctx context.Context, userID, collectionID, chunk,
 	return nil
 }
 
-type AskInput struct {
-	UserID       string
-	CollectionID string
-	Question     string
-}
-
+// Ask asks the chatbot a question by fetching the nearest neighbor and creating a chat completition.
 func (s *Service) Ask(ctx context.Context, userID, collectionID, question string) (string, error) {
 	embedd, err := s.client.CreateEmbedding(ctx, openaicli.EmbbedingRequest{
 		Model: string(defaultModel),
@@ -192,6 +198,7 @@ func (s *Service) Ask(ctx context.Context, userID, collectionID, question string
 	return completition.Choices[0].Message.Content, nil
 }
 
+// readData reads the data from the given readers and returns a slice of strings.
 func readData(data []io.Reader, chunkSize int) ([]string, error) {
 	chunks := make([]string, 0)
 	for _, d := range data {
