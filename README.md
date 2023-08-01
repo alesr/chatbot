@@ -1,22 +1,17 @@
 # chatbot
 Implements a chatbot with custom embeddings using OpenAI APIs and pgVector.
 
+## Package Documentation
+
+To access the package documentation, install godoc with the following command: go install -v golang.org/x/tools/cmd/godoc@latest. Then, run godoc -http=:6060 and open http://localhost:6060/pkg/github.com/alesr/chatbot/ in your browser. Alternatively, if you have Task installed, you can run task godoc.
+
 ## Example:
 
-The following example shows how to train a model and ask a question.
-When calling the Train method, the service will read the data from the
-provided io.Reader, split it into chunks and create a openAI embedding for
-each chunk. The embeddings are then stored in a pgVector database, together
-with the original text, user and collection ID.
-Note that each user can have multiple collections, and each collection can
-have multiple embeddings.
+The following example illustrates how to train a model and pose a question. When invoking the Train method, the service reads data from the provided io.Reader, splits it into chunks, and creates an OpenAI embedding for each chunk. The embeddings are then stored in a pgVector database, along with the original text, user ID, and collection ID. It's important to note that each user can have multiple collections, and each collection can contain numerous embeddings.
 
-When calling the Ask method, the service will create an embedding for the
-question and compare it to the embeddings in the collection using cosine
-similarity. The answer with the highest similarity is returned.
+Upon invoking the Ask method, the service creates an embedding for the question and compares it to the embeddings in the collection using cosine similarity. The answer that exhibits the highest similarity is returned.
 
-Then the method request the OpenAI API to generate a chat completion using the
-text from the most similar embedding as the prompt, and the question.
+The method then makes a request to the OpenAI API to generate a chat completion, using the text from the most similar embedding as the prompt, and the original question.
 
 ```go
 func ExampleService_Train() {
